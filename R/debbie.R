@@ -9,7 +9,9 @@
 #' @export
 retrievePackage <- function(url, path="/tmp") {
   package_archive <- file.path(path, basename(url))
-  curl::curl_download(url, destfile=package_archive, quiet=FALSE)
+  curl::curl_download(url, destfile=package_archive)
+  system(command = paste0("file ", package_archive))
+  cat(dir(path = package_archive))
 }
 
 #' Extract a Debian archive containing an R package binary
