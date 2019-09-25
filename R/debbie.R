@@ -60,7 +60,7 @@ install_deb <- function(package=NULL,
     unpackPackage(file.path(path, basename(url)), dest_path=path, clean=clean)
     
     packageMatch <- gregexpr(pattern="(?<=r-cran-)(.*?)(?=\\_)", basename(url), perl=TRUE)
-    packageName <- unlist(regmatches(basename(url), results)) 
+    packageName <- unlist(regmatches(basename(url), packageMatch)) 
 
     options(install.packages.check.source = "no")
     utils::install.packages(file.path(path, packageName), repos=NULL, type="binary", ...)
