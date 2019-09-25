@@ -10,8 +10,6 @@
 retrievePackage <- function(url, path="/tmp") {
   package_archive <- file.path(path, basename(url))
   curl::curl_download(url, destfile=package_archive)
-  system(command = paste0("file ", package_archive))
-  cat(dir(path = package_archive))
 }
 
 #' Extract a Debian archive containing an R package binary
@@ -25,7 +23,7 @@ retrievePackage <- function(url, path="/tmp") {
 #' @keywords extract untar Debian binary 
 #' @export
 unpackPackage <- function(pkg_path, dest_path, clean=TRUE) {
-  utils::untar(pkg_path, files="data.tar.xz", exdir=dest_path)
+  system(command = sprintf("dpkg-deb --fsys-tarfile %s | tar xvf - %s", basename(url), "data.tar.xz"))
   utils::untar(file.path(dest_path, "data.tar.xz"), exdir=dest_path)
   
   if (clean) {
