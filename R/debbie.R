@@ -23,7 +23,7 @@ retrievePackage <- function(url, path="/tmp") {
 #' @keywords extract untar Debian binary 
 #' @export
 unpackPackage <- function(pkg_path, pkg_file, dest_path, clean=TRUE) {
-  system(command = sprintf("ar x %s %s", file.path(pkg_path, pkg_file), "data.tar.xz"))
+  system(command = sprintf("cd %s && ar x %s %s", dest_path, file.path(pkg_path, pkg_file), "data.tar.xz"))
   utils::untar(file.path(dest_path, "data.tar.xz"), exdir=dest_path)
   
   if (clean) {
