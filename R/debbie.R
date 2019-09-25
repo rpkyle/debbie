@@ -62,8 +62,11 @@ install_deb <- function(package=NULL,
     unpackPackage(pkg_path=pkg_path, pkg_file=basename(url), dest_path=dest_path, clean=clean)
     
     packageMatch <- gregexpr(pattern="(?<=r-cran-)(.*?)(?=\\_)", basename(url), perl=TRUE)
-    packageName <- unlist(regmatches(basename(url), packageMatch)) 
+    packageName <- unlist(regmatches(basename(url), packageMatch))
+    
+    # try to protect ourselves from case sensitivity
+    packagePath <- list.files(dest_path)[(tolower(packageName) == tolower(list.files(dest_path)))]
 
-    devtools::install(pkg = file.path(dest_path, packageName), build = FALSE, ...)
+    devtools::install(pkg = file.path(dest_path, packagePath), build = FALSE, ...)
   }
 }
