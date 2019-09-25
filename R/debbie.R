@@ -22,8 +22,8 @@ retrievePackage <- function(url, path="/tmp") {
 #' @param clean Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.
 #' @keywords extract untar Debian binary 
 #' @export
-unpackPackage <- function(pkg_path, dest_path, clean=TRUE) {
-  system(command = sprintf("ar x %s %s", pkg_path, "data.tar.xz"))
+unpackPackage <- function(pkg_path, pkg_file, dest_path, clean=TRUE) {
+  system(command = sprintf("ar x %s %s", file.path(pkg_path, pkg_file), "data.tar.xz"))
   utils::untar(file.path(dest_path, "data.tar.xz"), exdir=dest_path)
   
   if (clean) {
@@ -45,19 +45,21 @@ unpackPackage <- function(pkg_path, dest_path, clean=TRUE) {
 #'  
 #' @param package A character string describing an R package, for which a search of the Debian package repository will be performed. 
 #' @param url A character string which represents a valid URL to an R package.`
-#' @param path A character string describing the intended destination directory of the package.
+#' @param pkg_path A character string describing the location of the compressed package.
+#' @param dest_path A character string describing the intended destination directory of the package.
 #' @param clean Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.
 #' @param ... Arguments to be passed on to `install.packages`.
 #' @keywords Debian binary install packages 
 #' @export
 install_deb <- function(package=NULL, 
                         url=NULL, 
-                        path="/tmp", 
+                        pkg_path="/tmp", 
+                        dest_path="/tmp",
                         clean=TRUE,
                         ...) {
   if (!is.null(url)) {
-    retrievePackage(url, path)
-    unpackPackage(file.path(path, basename(url)), dest_path=path, clean=clean)
+    retrievePackage(url, pkg_path)
+    unpackPackage(pkg_path=pkg_path, pkg_file=basename(url), dest_path=dest_path, clean=clean)
     
     packageMatch <- gregexpr(pattern="(?<=r-cran-)(.*?)(?=\\_)", basename(url), perl=TRUE)
     packageName <- unlist(regmatches(basename(url), packageMatch)) 
