@@ -61,12 +61,16 @@ install_deb <- function(package=NULL,
     retrievePackage(url, pkg_path)
     unpackPackage(pkg_path=pkg_path, pkg_file=basename(url), dest_path=dest_path, clean=clean)
     
-    packageMatch <- gregexpr(pattern="(?<=r-cran-)(.*?)(?=\\_)", basename(url), perl=TRUE)
-    packageName <- unlist(regmatches(basename(url), packageMatch))
+    package_match <- gregexpr(pattern="(?<=r-cran-)(.*?)(?=\\_)", basename(url), perl=TRUE)
+    package_name <- unlist(regmatches(basename(url), package_match))
     
     # try to protect ourselves from case sensitivity
-    packagePath <- list.files(dest_path)[(tolower(packageName) == tolower(list.files(dest_path)))]
+    package_path <- list.files(dest_path)[(tolower(package_name) == tolower(list.files(dest_path)))]
+    install_path <- file.path(dest_path, package_path)
+    
+    remotes::install_deps(pkgdir = install_path, build = FALSE, ...)
 
-    devtools::install(pkg = file.path(dest_path, packagePath), build = FALSE, ...)
+    opts <- c("--no-docs", "--no-multiarch", "--no-demo")
+    callr::rcmd("INSTALL", c(install_path, opts), echo = FALSE, show = TRUE)
   }
 }
