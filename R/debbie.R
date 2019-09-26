@@ -71,6 +71,6 @@ install_deb <- function(package=NULL,
     remotes::install_deps(pkgdir = install_path, build = FALSE, ...)
 
     opts <- c("--no-docs", "--no-multiarch", "--no-demo")
-    callr::rcmd("INSTALL", c(install_path, opts), echo = FALSE, show = TRUE)
+    callr::rcmd("INSTALL", c(install_path, opts), echo = FALSE, show = FALSE)
   }
 }
