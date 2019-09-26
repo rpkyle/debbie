@@ -4,7 +4,7 @@ Version: 0.0.0.9000
 Authors@R: person("Ryan Patrick", "Kyle", email = "ryan@plot.ly", role = c("aut", "cre"))
 Description: This package is intended for users of R on Debian or Ubuntu hosts who would like to leverage binary versions of R packages in Debian package repositories, but who are either unable or too lazy to install them the typical way via apt.  
 Depends: R (>= 3.0.2)
-Imports: curl, utils, devtools
+Imports: curl, utils, callr, remotes 
 License: MIT 
 Encoding: UTF-8
 LazyData: true
