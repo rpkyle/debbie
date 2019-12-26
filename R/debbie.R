@@ -15,21 +15,24 @@ retrievePackage <- function(url, path="/tmp") {
 #' Extract a Debian archive containing an R package binary
 #'
 #' This function uses `untar` to extract the R package from within a Debian
-#' archive, and, if `clean` is `TRUE`, deletes all non-package directories
-#' extracted from the archive.
+#' archive.
 #' @param pkg_path A character string describing the location of the compressed package.
+#' @param pkg_file A character string describing the filename of the Debian package.
 #' @param dest_path A character string describing the intended destination directory of the package.
-#' @param clean Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.
 #' @keywords extract untar Debian binary 
 #' @export
-unpackPackage <- function(pkg_path, pkg_file, dest_path, clean=TRUE) {
-  system(command = sprintf("cd %s && ar x %s %s", dest_path, file.path(pkg_path, pkg_file), "data.tar.xz"))
-  utils::untar(file.path(dest_path, "data.tar.xz"), exdir=dest_path)
+unpackPackage <- function(pkg_path, pkg_file, dest_path) {
+  if (Sys.which("ar") == "")
+    stop("the ar command is required to unpack the Debian package binaries, and was not found. Please ensure ar is available and in your current path.")
   
-  if (clean) {
-    file.copy(list.dirs(file.path(dest_path, "usr/lib/R/site-library"))[-1], to=dest_path, overwrite=TRUE, recursive=TRUE)
-    unlink(file.path(dest_path, "usr/lib/R/site-library"), recursive=TRUE)
+  system(command = sprintf("cd %s && ar x %s %s", dest_path, file.path(pkg_path, pkg_file), "data.tar.xz"))
+  
+  if (!file.exists(file.path(dest_path, "data.tar.xz"))) {
+    reports <- utils::packageDescription("debbie")$BugReports
+    stop(sprintf("the Debian package does not contain data.tar.xz; please consider reporting this error via %s.", reports))
   }
+  
+  utils::untar(file.path(dest_path, "data.tar.xz"), exdir=dest_path)
 }
 
 #' Install an R package from the Debian Package Repository 
@@ -44,33 +47,101 @@ unpackPackage <- function(pkg_path, pkg_file, dest_path, clean=TRUE) {
 #' for Debian or Ubuntu from CRAN or GitHub.
 #'  
 #' @param package A character string describing an R package, for which a search of the Debian package repository will be performed. 
-#' @param url A character string which represents a valid URL to an R package.`
-#' @param pkg_path A character string describing the location of the compressed package.
-#' @param dest_path A character string describing the intended destination directory of the package.
+#' @param pkg_ver A character string describing a particular version of an R package, for which a search will be performed. 
+#' @param mirror A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.
+#' @param sources_url A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.
+#' @param release A character string describing the desired Debian release code name, default is `sid`.
+#' @param pkg_path A character string describing the intended destination directory of the package when downloaded. Default is the session temporary directory given by `tempdir()`.
 #' @param clean Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.
-#' @param ... Arguments to be passed on to `install.packages`.
+#' @param opts A vector of character strings containing command line arguments for `INSTALL`, used when installing the downloaded package. Default is `--no-docs`, `--no-multiarch`, `--no-demo`.
+#' @param echo Logical. A Boolean flag passed to `callr::rcmd` which indicates whether the complete command should be echoed to the R console.
+#' @param show Logical. A Boolean flag passed to `callr::rcmd` which indicates whether the standard output of the `INSTALL` command run by `callr::rcmd` should be displayed while the process is running.
+#' @param fail_on_status Logical. A Boolean flag passed to `callr::rcmd` which controls whether an error should be thrown if the underlying process terminates with a status code other than 0. Default is `TRUE`.
+#' @param ... Arguments to be passed on to `remotees::install_deps`.
 #' @keywords Debian binary install packages 
 #' @export
-install_deb <- function(package=NULL, 
-                        url=NULL, 
-                        pkg_path="/tmp", 
-                        dest_path="/tmp",
-                        clean=TRUE,
-                        ...) {
-  if (!is.null(url)) {
-    retrievePackage(url, pkg_path)
-    unpackPackage(pkg_path=pkg_path, pkg_file=basename(url), dest_path=dest_path, clean=clean)
+install_deb <- function (package = NULL, 
+                         pkg_ver = NULL,
+                         mirror = "http://deb.debian.org/debian/pool/main/r", 
+                         sources_url = "https://sources.debian.org/api/src",
+                         release = "sid",
+                         download_path = tempdir(), 
+                         clean = FALSE, 
+                         opts = c("--no-docs", "--no-multiarch", "--no-demo"),
+                         echo = FALSE,
+                         show = TRUE,
+                         fail_on_status = TRUE,
+                         ...) 
+{
+  if (!is.null(package)) {
+    if (httr::http_error(mirror))
+      stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")
+  
+  # remove r-cran from package name if present
+  package <- gsub("r-cran-", "", package)
     
-    package_match <- gregexpr(pattern="(?<=r-cran-)(.*?)(?=\\_)", basename(url), perl=TRUE)
-    package_name <- unlist(regmatches(basename(url), package_match))
-    
-    # try to protect ourselves from case sensitivity
-    package_path <- list.files(dest_path)[(tolower(package_name) == tolower(list.files(dest_path)))]
-    install_path <- file.path(dest_path, package_path)
-    
-    remotes::install_deps(pkgdir = install_path, build = FALSE, ...)
+  # remove trailing slash(es) from URLs if present
+  mirror <- gsub("/+$", "", mirror)
+  sources_url <- gsub("/+$", "", sources_url)
+  
+  result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, package))
+  
+  if ("error" %in% names(result))
+    stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
 
-    opts <- c("--no-docs", "--no-multiarch", "--no-demo")
-    callr::rcmd("INSTALL", c(install_path, opts), echo = FALSE, show = FALSE)
+  # ensure that release is available
+  indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
+  if (!any(indexes == TRUE)) 
+    stop(sprintf("no matches found for release '%s' given package '%s'.", release, package))
+  
+  # retrieve newest package unless provided  
+  if (is.null(pkg_ver)) {
+    pkg_ver <- result$versions$version[indexes][[1]]
+  } else {
+    if (result$versions[indexes,]$version != pkg_ver)
+      stop(sprintf("no matches found for release '%s' and version '%s' of package '%s'.", release, pkg_ver, package))
   }
+  
+  base_url <- sprintf("%s/r-cran-%s/", mirror, package)
+  filename <- sprintf("r-cran-%s_%s_amd64.deb", package, pkg_ver, ".deb")
+  url <- sprintf("%s%s", base_url, filename)
+  
+  if (!httr::http_error(url))
+    retrievePackage(url, download_path)
+  else {
+    url <- sprintf("%s%s", 
+                   base_url, 
+                   sprintf("r-cran-%s_%s_all.deb", package, pkg_ver, ".deb"))
+    if (!httr::http_error(url))
+      retrievePackage(url, download_path)
+    else {
+      reports <- utils::packageDescription("debbie")$BugReports
+      stop(sprintf("Error: the package '%s' could not be retrieved. The URL used was '%s'; if a valid Debian mirror was specified, please consider submitting a message with a bug report to %s",
+                   package, 
+                   url,
+                   reports))
+    }
+  }
+
+  unpackPackage(download_path, 
+                pkg_file=basename(url), 
+                dest_path=download_path)
+  package_match <- gregexpr(pattern = "(?<=r-cran-)(.*?)(?=\\_)", 
+                            basename(url), 
+                            perl = TRUE)
+  package_name <- unlist(regmatches(basename(url), package_match))
+  
+  # try to protect ourselves from case sensitivity; some
+  # Debian packages store their assets in a subfolder whose
+  # case does not match the package name; this is a workaround
+  path_to_assets <- file.path(download_path, "usr/lib/R/site-library")
+  actual_path <- list.files(path_to_assets)[(tolower(package_name) == tolower(list.files(path_to_assets)))]
+  package_path <- file.path(path_to_assets, actual_path)
+  
+  if (!dir.exists(package_path))
+    stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
+  
+  remotes::install_deps(pkgdir = package_path, build = FALSE, ...)
+  invisible(callr::rcmd("INSTALL", c(package_path, opts), echo = echo, show = show, fail_on_status = fail_on_status))
+  } else stop("no R package name was provided. Please supply the name of the R package to install as a character string.")
 }
