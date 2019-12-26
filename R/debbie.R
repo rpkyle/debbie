@@ -2,26 +2,26 @@
 #'
 #' This function attempts to download an R package compiled for
 #' Debian (which may work on hosts running Ubuntu also) using
-#' curl to the directory specified in `path`.
+#' curl to the directory specified in \code{path}.
 #' @param url A character string which represents a valid URL to an R package.
-#' @param path A character string describing the path where the package should be downloaded. Defaults to /tmp.
+#' @param path A character string describing the path where the package should be downloaded. Defaults to \code{tempdir()}.
 #' @keywords Debian download binary package 
 #' @export
-retrievePackage <- function(url, path="/tmp") {
+retrievePackage <- function(url, path=tempdir()) {
   package_archive <- file.path(path, basename(url))
   curl::curl_download(url, destfile=package_archive)
 }
 
 #' Extract a Debian archive containing an R package binary
 #'
-#' This function uses `untar` to extract the R package from within a Debian
+#' This function uses \code{untar} to extract the R package from within a Debian
 #' archive.
 #' @param pkg_path A character string describing the location of the compressed package.
 #' @param pkg_file A character string describing the filename of the Debian package.
 #' @param dest_path A character string describing the intended destination directory of the package.
 #' @keywords extract untar Debian binary 
 #' @export
-unpackPackage <- function(pkg_path, pkg_file, dest_path) {
+unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir()) {
   if (Sys.which("ar") == "")
     stop("the ar command is required to unpack the Debian package binaries, and was not found. Please ensure ar is available and in your current path.")
   
@@ -50,14 +50,14 @@ unpackPackage <- function(pkg_path, pkg_file, dest_path) {
 #' @param pkg_ver A character string describing a particular version of an R package, for which a search will be performed. 
 #' @param mirror A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.
 #' @param sources_url A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.
-#' @param release A character string describing the desired Debian release code name, default is `sid`.
-#' @param pkg_path A character string describing the intended destination directory of the package when downloaded. Default is the session temporary directory given by `tempdir()`.
+#' @param release A character string describing the desired Debian release code name, default is \code{sid}.
+#' @param pkg_path A character string describing the intended destination directory of the package when downloaded. Default is the session temporary directory given by \code{tempdir()}.
 #' @param clean Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.
-#' @param opts A vector of character strings containing command line arguments for `INSTALL`, used when installing the downloaded package. Default is `--no-docs`, `--no-multiarch`, `--no-demo`.
-#' @param echo Logical. A Boolean flag passed to `callr::rcmd` which indicates whether the complete command should be echoed to the R console.
-#' @param show Logical. A Boolean flag passed to `callr::rcmd` which indicates whether the standard output of the `INSTALL` command run by `callr::rcmd` should be displayed while the process is running.
-#' @param fail_on_status Logical. A Boolean flag passed to `callr::rcmd` which controls whether an error should be thrown if the underlying process terminates with a status code other than 0. Default is `TRUE`.
-#' @param ... Arguments to be passed on to `remotees::install_deps`.
+#' @param opts A vector of character strings containing command line arguments for \code{INSTALL}, used when installing the downloaded package. Default is \code{--no-docs}, \code{--no-multiarch}, \code{--no-demo}.
+#' @param echo Logical. A Boolean flag passed to \code{callr::rcmd} which indicates whether the complete command should be echoed to the R console.
+#' @param show Logical. A Boolean flag passed to \code{callr::rcmd} which indicates whether the standard output of the \code{INSTALL} command run by \code{callr::rcmd} should be displayed while the process is running.
+#' @param fail_on_status Logical. A Boolean flag passed to \code{callr::rcmd} which controls whether an error should be thrown if the underlying process terminates with a status code other than 0. Default is \code{TRUE}.
+#' @param ... Arguments to be passed on to \code{remotes::install_deps}.
 #' @keywords Debian binary install packages 
 #' @export
 install_deb <- function (package = NULL, 

@@ -4,7 +4,7 @@
 \alias{unpackPackage}
 \title{Extract a Debian archive containing an R package binary}
 \usage{
-unpackPackage(pkg_path, pkg_file, dest_path)
+unpackPackage(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 }
 \arguments{
 \item{pkg_path}{A character string describing the location of the compressed package.}
@@ -14,7 +14,7 @@ unpackPackage(pkg_path, pkg_file, dest_path)
 \item{dest_path}{A character string describing the intended destination directory of the package.}
 }
 \description{
-This function uses `untar` to extract the R package from within a Debian
+This function uses \code{untar} to extract the R package from within a Debian
 archive.
 }
 \keyword{Debian}

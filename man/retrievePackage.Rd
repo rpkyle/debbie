@@ -4,17 +4,17 @@
 \alias{retrievePackage}
 \title{Retrieve an R package binary from Debian's package repository}
 \usage{
-retrievePackage(url, path = "/tmp")
+retrievePackage(url, path = tempdir())
 }
 \arguments{
 \item{url}{A character string which represents a valid URL to an R package.}
 
-\item{path}{A character string describing the path where the package should be downloaded. Defaults to /tmp.}
+\item{path}{A character string describing the path where the package should be downloaded. Defaults to \code{tempdir()}.}
 }
 \description{
 This function attempts to download an R package compiled for
 Debian (which may work on hosts running Ubuntu also) using
-curl to the directory specified in `path`.
+curl to the directory specified in \code{path}.
 }
 \keyword{Debian}
 \keyword{binary}

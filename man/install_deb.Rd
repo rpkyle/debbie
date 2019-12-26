@@ -20,21 +20,21 @@ install_deb(package = NULL, pkg_ver = NULL,
 
 \item{sources_url}{A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.}
 
-\item{release}{A character string describing the desired Debian release code name, default is `sid`.}
+\item{release}{A character string describing the desired Debian release code name, default is \code{sid}.}
 
 \item{clean}{Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.}
 
-\item{opts}{A vector of character strings containing command line arguments for `INSTALL`, used when installing the downloaded package. Default is `--no-docs`, `--no-multiarch`, `--no-demo`.}
+\item{opts}{A vector of character strings containing command line arguments for \code{INSTALL}, used when installing the downloaded package. Default is \code{--no-docs}, \code{--no-multiarch}, \code{--no-demo}.}
 
-\item{echo}{Logical. A Boolean flag passed to `callr::rcmd` which indicates whether the complete command should be echoed to the R console.}
+\item{echo}{Logical. A Boolean flag passed to \code{callr::rcmd} which indicates whether the complete command should be echoed to the R console.}
 
-\item{show}{Logical. A Boolean flag passed to `callr::rcmd` which indicates whether the standard output of the `INSTALL` command run by `callr::rcmd` should be displayed while the process is running.}
+\item{show}{Logical. A Boolean flag passed to \code{callr::rcmd} which indicates whether the standard output of the \code{INSTALL} command run by \code{callr::rcmd} should be displayed while the process is running.}
 
-\item{fail_on_status}{Logical. A Boolean flag passed to `callr::rcmd` which controls whether an error should be thrown if the underlying process terminates with a status code other than 0. Default is `TRUE`.}
+\item{fail_on_status}{Logical. A Boolean flag passed to \code{callr::rcmd} which controls whether an error should be thrown if the underlying process terminates with a status code other than 0. Default is \code{TRUE}.}
 
-\item{...}{Arguments to be passed on to `remotees::install_deps`.}
+\item{...}{Arguments to be passed on to \code{remotes::install_deps}.}
 
-\item{pkg_path}{A character string describing the intended destination directory of the package when downloaded. Default is the session temporary directory given by `tempdir()`.}
+\item{pkg_path}{A character string describing the intended destination directory of the package when downloaded. Default is the session temporary directory given by \code{tempdir()}.}
 }
 \description{
 This function attempts to retrieve a Debian binary package corresponding
