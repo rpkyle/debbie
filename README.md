@@ -1,6 +1,6 @@
 ![debbie](https://user-images.githubusercontent.com/9809798/65625175-50cb4580-df99-11e9-9596-19db83305173.png)
 ===
-`debbie` is an R package which aims to simplify installing binary versions of CRAN packages hosted in Debian repositories. While CRAN mirrors do offer source versions of R packages, repeatedly compiling these can be time-consuming, or present challenges whenever compilation fails.
+`debbie` is an R package which aims to simplify installation of binary versions of CRAN packages hosted in Debian repositories from within an R session. While CRAN mirrors do offer source versions of R packages, repeatedly compiling these can be time-consuming, or present challenges whenever compilation fails.
 
 This package was originally a basic set of functions I found useful when deploying web applications with Dash for R. I've attempted to make it a bit more user-friendly in case anyone else finds it useful.
 
@@ -14,7 +14,7 @@ library(debbie)
 install_deb("data.table")
 ```
 
-If a package name is unknown on unretrievable, `install_deb` will try to present a helpful error message before exiting gracefully.
+If a package name is unknown or unretrievable, `install_deb` will try to present a helpful error message before exiting gracefully.
 
 ```
 > install_deb("foo")
