@@ -5,6 +5,7 @@
 This package was originally a basic set of functions I found useful when deploying web applications with Dash for R. I've attempted to make it a bit more user-friendly in case anyone else finds it useful.
 
 **What does `debbie` do?**
+===
 
 It's pretty simple: `debbie` includes a function called `install_deb` which will retrieve the Debian binary version of an R package given its name -- so to install `data.table` given the default mirror, the following should work:
 
@@ -22,6 +23,7 @@ Error in install_deb("foo") :
 ```
 
 **What exactly is `debbie` doing?**
+===
 
 Debian Sources provides a nice API which permits searching source and package information via HTTP request, returning the results in JSON format.
 
@@ -97,6 +99,7 @@ Once downloaded, `unpackPackage` will then extract the R package subdirectory fr
 Finally, `callr::rcmd` is used to install the precompiled package.
 
 **What's the point of `debbie` when users can already download the packages via `apt`?**
+===
 
 While it's preferable to use `apt` after adding the appropriate repositories to `sources.list`, it's slightly more involved to do so when deploying web applications to Dash Enterprise or Heroku. 
 
