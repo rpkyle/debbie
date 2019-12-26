@@ -22,7 +22,7 @@ Error in install_deb("foo") :
   the package 'foo' was not found; the response returned was 404.
 ```
 
-**What exactly is `debbie` doing?**
+**Where is `debbie` obtaining the resources it uses for the installation?**
 ===
 
 Debian Sources provides a nice API which permits searching source and package information via HTTP request, returning the results in JSON format.
