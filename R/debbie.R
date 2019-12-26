@@ -84,7 +84,7 @@ install_deb <- function (package = NULL,
   mirror <- gsub("/+$", "", mirror)
   sources_url <- gsub("/+$", "", sources_url)
   
-  result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, package))
+  result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
   
   if ("error" %in% names(result))
     stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
@@ -102,8 +102,8 @@ install_deb <- function (package = NULL,
       stop(sprintf("no matches found for release '%s' and version '%s' of package '%s'.", release, pkg_ver, package))
   }
   
-  base_url <- sprintf("%s/r-cran-%s/", mirror, package)
-  filename <- sprintf("r-cran-%s_%s_amd64.deb", package, pkg_ver, ".deb")
+  base_url <- sprintf("%s/r-cran-%s/", mirror, tolower(package))
+  filename <- sprintf("r-cran-%s_%s_amd64.deb", tolower(package), pkg_ver, ".deb")
   url <- sprintf("%s%s", base_url, filename)
   
   if (!httr::http_error(url))
@@ -111,7 +111,7 @@ install_deb <- function (package = NULL,
   else {
     url <- sprintf("%s%s", 
                    base_url, 
-                   sprintf("r-cran-%s_%s_all.deb", package, pkg_ver, ".deb"))
+                   sprintf("r-cran-%s_%s_all.deb", tolower(package), pkg_ver, ".deb"))
     if (!httr::http_error(url))
       retrievePackage(url, download_path)
     else {
