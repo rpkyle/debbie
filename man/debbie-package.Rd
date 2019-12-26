@@ -8,6 +8,14 @@
 \description{
 Coming soon
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/rpkyle/debbie}
+  \item Report bugs at \url{https://github.com/rpkyle/debbie/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Ryan Patrick Kyle \email{ryan@plot.ly}
 
