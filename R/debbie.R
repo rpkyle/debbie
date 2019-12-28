@@ -45,6 +45,7 @@ unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 #' @param package A character string describing an R package, for which a search of the Debian package repository will be performed. 
 #' @param deb_mirror A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.
 #' @param sources_url A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.
+#' @export
 debPkgAvailable <- function(package, deb_mirror, sources_url) {
   if (httr::http_error(deb_mirror))
     stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")

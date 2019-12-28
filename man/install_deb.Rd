@@ -5,24 +5,26 @@
 \title{Install an R package from the Debian Package Repository}
 \usage{
 install_deb(package = NULL, pkg_ver = NULL,
-  mirror = "http://deb.debian.org/debian/pool/main/r",
+  deb_mirror = "http://deb.debian.org/debian/pool/main/r",
+  cran_mirror = "https://cloud.r-project.org/",
   sources_url = "https://sources.debian.org/api/src", release = "sid",
-  download_path = tempdir(), clean = FALSE, opts = c("--no-docs",
-  "--no-multiarch", "--no-demo"), echo = FALSE, show = TRUE,
-  fail_on_status = TRUE, ...)
+  download_path = tempdir(), opts = c("--no-docs", "--no-multiarch",
+  "--no-demo"), echo = FALSE, show = TRUE, fail_on_status = TRUE,
+  use_binary = TRUE, recursive = TRUE, upgrade = "never",
+  fallback = TRUE, ...)
 }
 \arguments{
 \item{package}{A character string describing an R package, for which a search of the Debian package repository will be performed.}
 
 \item{pkg_ver}{A character string describing a particular version of an R package, for which a search will be performed.}
 
-\item{mirror}{A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.}
+\item{deb_mirror}{A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.}
+
+\item{cran_mirror}{A character string which represents a valid CRAN mirror URL, for use when code{fallback = TRUE}. Default is to use https://cloud.r-project.org/.}
 
 \item{sources_url}{A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.}
 
 \item{release}{A character string describing the desired Debian release code name, default is \code{sid}.}
-
-\item{clean}{Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.}
 
 \item{opts}{A vector of character strings containing command line arguments for \code{INSTALL}, used when installing the downloaded package. Default is \code{--no-docs}, \code{--no-multiarch}, \code{--no-demo}.}
 
@@ -31,6 +33,14 @@ install_deb(package = NULL, pkg_ver = NULL,
 \item{show}{Logical. A Boolean flag passed to \code{callr::rcmd} which indicates whether the standard output of the \code{INSTALL} command run by \code{callr::rcmd} should be displayed while the process is running.}
 
 \item{fail_on_status}{Logical. A Boolean flag passed to \code{callr::rcmd} which controls whether an error should be thrown if the underlying process terminates with a status code other than 0. Default is \code{TRUE}.}
+
+\item{use_binary}{Logical. A Boolean flag specifying whether dependencies should be fetched using \code{install_deb}. Default is \code{TRUE}.}
+
+\item{recursive}{Logical. A Boolean flag specifying whether \code{install_deb} should recursively search for dependencies. Default is \code{TRUE}.}
+
+\item{upgrade}{Logical. A Boolean flag specifying whether to automatically upgrade packages using \code{install_deps}. Has no effect unless \code{recursive = FALSE}}
+
+\item{fallback}{Logical. A Boolean flag specifying whether to fall back to using CRAN for a given dependency if no binary package is available. Default is \code{TRUE}.}
 
 \item{...}{Arguments to be passed on to \code{remotes::install_deps}.}
 
