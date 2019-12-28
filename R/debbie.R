@@ -120,7 +120,7 @@ install_deb <- function (package = NULL,
     if (pkg_status == FALSE && fallback == FALSE) {
       stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
     } else if (pkg_status == FALSE && fallback == TRUE) {
-      install.packages(package, repos = cran_mirror)
+      return(install.packages(package, repos = cran_mirror))
     } else {
       # ensure that release is available
       indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
