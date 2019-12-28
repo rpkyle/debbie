@@ -82,14 +82,14 @@ install_deb <- function (package = NULL,
                          ...) 
 {
   if (!is.null(package)) {
-    if (httr::http_error(mirror))
+    if (httr::http_error(deb_mirror))
       stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")
     
     # remove r-cran from package name if present
     package <- gsub("r-cran-", "", package)
     
     # remove trailing slash(es) from URLs if present
-    mirror <- gsub("/+$", "", mirror)
+    deb_mirror <- gsub("/+$", "", deb_mirror)
     sources_url <- gsub("/+$", "", sources_url)
     
     result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
@@ -112,7 +112,7 @@ install_deb <- function (package = NULL,
           stop(sprintf("no matches found for release '%s' and version '%s' of package '%s'.", release, pkg_ver, package))
       }
       
-      base_url <- sprintf("%s/r-cran-%s/", mirror, tolower(package))
+      base_url <- sprintf("%s/r-cran-%s/", deb_mirror, tolower(package))
       filename <- sprintf("r-cran-%s_%s_amd64.deb", tolower(package), pkg_ver, ".deb")
       url <- sprintf("%s%s", base_url, filename)
       
