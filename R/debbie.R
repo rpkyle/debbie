@@ -189,11 +189,11 @@ install_deb <- function (package = NULL,
         # using invisible avoids an annoying warning about workspaces and R versions
         installed_packages <- invisible(as.data.frame(installed.packages())[,"Package"])
         deps_to_install <- deps_to_install[!deps_to_install %in% installed_packages]
+        
         if (length(deps_to_install) != 0) {
-          message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
-                          paste0(unlist(deps_to_install), collapse = ", "),
-                          package_name))
-
+          # recursively find all necessary dependencies        
+          deps_to_install <- miniCRAN::pkgDep(deps_to_install, suggests=FALSE)
+          
           deps_to_install <- vapply(deps_to_install, 
                                 function(x) 
                                   debPkgAvailable(x, 
@@ -201,6 +201,16 @@ install_deb <- function (package = NULL,
                                                   sources_url)[[1]],
                                                   logical(1)
                                 )
+          
+          if (any(deps_to_install == TRUE)) 
+            message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
+                            paste0(names(deps_to_install[deps_to_install == TRUE]), collapse = ", "),
+                            package_name))
+          
+          if (any(deps_to_install == FALSE))
+            message(sprintf("debbie will also install source packages %s for %s from CRAN (not currently available as binaries)...", 
+                            paste0(names(deps_to_install[deps_to_install == FALSE]), collapse = ", "),
+                            package_name))
           
           # try to install binary package versions first
           sorted_deps <- sort(deps_to_install, decreasing=TRUE)
@@ -223,7 +233,7 @@ install_deb <- function (package = NULL,
                            }
           ))
         } else if (use_binary == FALSE) {
-          remotes::install_deps(pkgdir = package_path, build = FALSE, upgrade = upgrade, ...)
+          remotes::install_deps(pkgdir = package_path, upgrade = upgrade, ...)
         }
       }
       
