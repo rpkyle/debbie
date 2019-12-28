@@ -175,8 +175,9 @@ install_deb <- function (package = NULL,
         stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
       
       path_to_description <- file.path(package_path, "DESCRIPTION")
-      raw_deps <- suppressMessages(read.dcf(path_to_description, fields = c("Depends", "Imports")))
+      raw_deps <- read.dcf(path_to_description, fields = c("Depends", "Imports"))
       pruned_deps <- gsub(",* *R \\([^()]*\\),* *", "", raw_deps)
+      pruned_deps <- pruned_deps[!is.na(pruned_deps)]
       
       if (recursive == TRUE && use_binary == TRUE && !all(pruned_deps == "")) {
         unformatted_deps <- pruned_deps[!pruned_deps == ""]
@@ -185,7 +186,9 @@ install_deb <- function (package = NULL,
         list_of_deps <- lapply(list_of_deps, function(x) gsub(" *\\([^()]*\\)", "", x)) # ignore version for now
         deps_to_install <- unlist(list_of_deps)
         # limit to those packages not currently installed
-        deps_to_install <- deps_to_install[!deps_to_install %in% installed.packages()[,"Package"]]
+        # using invisible avoids an annoying warning about workspaces and R versions
+        installed_packages <- invisible(as.data.frame(installed.packages())[,"Package"])
+        deps_to_install <- deps_to_install[!deps_to_install %in% installed_packages]
         if (length(deps_to_install) != 0) {
           message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
                           paste0(unlist(deps_to_install), collapse = ", "),
