@@ -154,8 +154,10 @@ install_deb <- function (package = NULL,
     comma_separated_deps <- paste0(unformatted_deps, collapse = ", ")
     list_of_deps <- strsplit(comma_separated_deps, ", ")
     list_of_deps <- lapply(list_of_deps, function(x) gsub(" *\\([^()]*\\)", "", x)) # ignore version for now
-    deps_to_install <- lapply(list_of_deps, function(x) x[!x %in% installed.packages()[,"Package"]])
-    if (length(unlist(deps_to_install)) != 0) {
+    deps_to_install <- unlist(list_of_deps)
+    # limit to those packages not currently installed
+    deps_to_install <- deps_to_install[!deps_to_install %in% installed.packages()[,"Package"]]
+    if (length(deps_to_install) != 0) {
       message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
                       paste0(unlist(deps_to_install), collapse = ", "),
                       package_name))
