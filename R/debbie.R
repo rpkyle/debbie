@@ -120,7 +120,7 @@ install_deb <- function (package = NULL,
     if (pkg_status == FALSE && fallback == FALSE) {
       stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
     } else if (pkg_status == FALSE && fallback == TRUE) {
-      return(install.packages(package, repos = cran_mirror))
+      install.packages(package, repos = cran_mirror)
     } else {
       # ensure that release is available
       indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
@@ -170,6 +170,8 @@ install_deb <- function (package = NULL,
       path_to_assets <- file.path(download_path, "usr/lib/R/site-library")
       actual_path <- list.files(path_to_assets)[(tolower(package_name) == tolower(list.files(path_to_assets)))]
       package_path <- file.path(path_to_assets, actual_path)
+      
+      browser()
       
       if (!dir.exists(package_path))
         stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
