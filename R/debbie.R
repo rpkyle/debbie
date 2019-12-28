@@ -162,7 +162,7 @@ install_deb <- function (package = NULL,
       invisible(lapply(deps_to_install, 
                        function(x) {
                          install_deb(
-                           package = pkg_name,
+                           package = x,
                            mirror = mirror,
                            sources_url = sources_url,
                            release = release,
