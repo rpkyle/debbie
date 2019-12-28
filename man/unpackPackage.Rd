@@ -4,19 +4,18 @@
 \alias{unpackPackage}
 \title{Extract a Debian archive containing an R package binary}
 \usage{
-unpackPackage(pkg_path, dest_path, clean = TRUE)
+unpackPackage(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 }
 \arguments{
 \item{pkg_path}{A character string describing the location of the compressed package.}
 
-\item{dest_path}{A character string describing the intended destination directory of the package.}
+\item{pkg_file}{A character string describing the filename of the Debian package.}
 
-\item{clean}{Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.}
+\item{dest_path}{A character string describing the intended destination directory of the package.}
 }
 \description{
-This function uses `untar` to extract the R package from within a Debian
-archive, and, if `clean` is `TRUE`, deletes all non-package directories
-extracted from the archive.
+This function uses \code{untar} to extract the R package from within a Debian
+archive.
 }
 \keyword{Debian}
 \keyword{binary}
