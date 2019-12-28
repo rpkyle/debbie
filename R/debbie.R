@@ -145,7 +145,7 @@ install_deb <- function (package = NULL,
   if (!dir.exists(package_path))
     stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
 
-  path_to_description <- file.path(actual_path, "DESCRIPTION")
+  path_to_description <- file.path(package_path, "DESCRIPTION")
   raw_deps <- read.dcf(path_to_description, fields = c("Depends", "Imports"))
   pruned_deps <- gsub(",* *R \\([^()]*\\),* *", "", raw_deps)
   
