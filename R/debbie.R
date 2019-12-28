@@ -195,7 +195,7 @@ install_deb <- function (package = NULL,
                                 function(x) 
                                   debPkgAvailable(x, 
                                                   deb_mirror, 
-                                                  sources_url),
+                                                  sources_url)[[1]],
                                                   logical(1)
                                 )
           
