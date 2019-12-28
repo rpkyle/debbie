@@ -160,18 +160,20 @@ install_deb <- function (package = NULL,
                       paste0(unlist(deps_to_install), collapse = ", "),
                       package_name))
       invisible(lapply(deps_to_install, 
-                       install_deb,
-                       package = pkg_name,
-                       mirror = mirror,
-                       sources_url = sources_url,
-                       release = release,
-                       download_path = download_path,
-                       opts = opts,
-                       echo = echo,
-                       show = show,
-                       fail_on_status = fail_on_status,
-                       use_binary = TRUE,
-                       recursive = FALSE))
+                       function(x) {
+                         install_deb(
+                         package = x,
+                         mirror = mirror,
+                         sources_url = sources_url,
+                         release = release,
+                         download_path = download_path,
+                         opts = opts,
+                         echo = echo,
+                         show = show,
+                         fail_on_status = fail_on_status,
+                         use_binary = TRUE,
+                         recursive = FALSE)
+                       }
     } else if (use_binary == FALSE) {
       remotes::install_deps(pkgdir = package_path, build = FALSE, upgrade = upgrade, ...)
     }
