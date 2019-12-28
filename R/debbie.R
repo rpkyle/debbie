@@ -48,7 +48,8 @@ unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 #'  
 #' @param package A character string describing an R package, for which a search of the Debian package repository will be performed. 
 #' @param pkg_ver A character string describing a particular version of an R package, for which a search will be performed. 
-#' @param mirror A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.
+#' @param deb_mirror A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.
+#' @param cran_mirror A character string which represents a valid CRAN mirror URL, for use when code{fallback = TRUE}. Default is to use https://cloud.r-project.org/.
 #' @param sources_url A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.
 #' @param release A character string describing the desired Debian release code name, default is \code{sid}.
 #' @param pkg_path A character string describing the intended destination directory of the package when downloaded. Default is the session temporary directory given by \code{tempdir()}.
@@ -59,13 +60,14 @@ unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 #' @param use_binary Logical. A Boolean flag specifying whether dependencies should be fetched using \code{install_deb}. Default is \code{TRUE}.
 #' @param recursive Logical. A Boolean flag specifying whether \code{install_deb} should recursively search for dependencies. Default is \code{TRUE}.
 #' @param upgrade Logical. A Boolean flag specifying whether to automatically upgrade packages using \code{install_deps}. Has no effect unless \code{recursive = FALSE}
-#' @param fallback Logical. A Boolean flag specifying whether to fall back to using CRAN (without installing dependencies) if no binary package is available. Default is \code{TRUE}.
+#' @param fallback Logical. A Boolean flag specifying whether to fall back to using CRAN for a given dependency if no binary package is available. Default is \code{TRUE}.
 #' @param ... Arguments to be passed on to \code{remotes::install_deps}.
 #' @keywords Debian binary install packages 
 #' @export
 install_deb <- function (package = NULL, 
                          pkg_ver = NULL,
-                         mirror = "http://deb.debian.org/debian/pool/main/r", 
+                         deb_mirror = "http://deb.debian.org/debian/pool/main/r", 
+                         cran_mirror = "https://cloud.r-project.org/",
                          sources_url = "https://sources.debian.org/api/src",
                          release = "sid",
                          download_path = tempdir(), 
@@ -95,7 +97,7 @@ install_deb <- function (package = NULL,
     if ("error" %in% names(result) && fallback == FALSE) {
       stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
     } else if ("error" %in% names(result) && fallback == TRUE) {
-      remotes::install_cran(package, dependencies = FALSE, upgrade = upgrade)
+      install.packages(package, repos = cran_mirror, upgrade = upgrade)
     } else {
       # ensure that release is available
       indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
@@ -169,7 +171,8 @@ install_deb <- function (package = NULL,
                            function(x) {
                              install_deb(
                                package = x,
-                               mirror = mirror,
+                               deb_mirror = deb_mirror,
+                               cran_mirror = cran_mirror,
                                sources_url = sources_url,
                                release = release,
                                download_path = download_path,
