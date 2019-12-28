@@ -167,11 +167,14 @@ install_deb <- function (package = NULL,
       # try to protect ourselves from case sensitivity; some
       # Debian packages store their assets in a subfolder whose
       # case does not match the package name; this is a workaround
-      path_to_assets <- file.path(download_path, "usr/lib/R/site-library")
+      subdirs <- tolower(list.files(file.path(download_path, "usr/lib/R/site-library")))
+      if (tolower(package_name) %in% subdirs)
+        path_to_assets <- file.path(download_path, "usr/lib/R/site-library")
+      else
+        path_to_assets <- file.path(download_path, "usr/lib/R/library")
+      
       actual_path <- list.files(path_to_assets)[(tolower(package_name) == tolower(list.files(path_to_assets)))]
       package_path <- file.path(path_to_assets, actual_path)
-      
-      browser()
       
       if (!dir.exists(package_path))
         stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
