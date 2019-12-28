@@ -173,7 +173,7 @@ install_deb <- function (package = NULL,
                          fail_on_status = fail_on_status,
                          use_binary = TRUE,
                          recursive = FALSE)
-                       }
+                       }))
     } else if (use_binary == FALSE) {
       remotes::install_deps(pkgdir = package_path, build = FALSE, upgrade = upgrade, ...)
     }
