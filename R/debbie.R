@@ -194,7 +194,7 @@ install_deb <- function (package = NULL,
           # recursively find all necessary dependencies        
           deps_to_install <- miniCRAN::pkgDep(deps_to_install, suggests=FALSE)
           
-          deps_to_install <- vapply(deps_to_install, 
+          available <- vapply(deps_to_install, 
                                 function(x) 
                                   debPkgAvailable(x, 
                                                   deb_mirror, 
@@ -202,20 +202,20 @@ install_deb <- function (package = NULL,
                                                   logical(1)
                                 )
           
-          if (any(deps_to_install == TRUE)) 
+          if (any(available == TRUE)) 
             message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
-                            paste0(names(deps_to_install[deps_to_install == TRUE]), collapse = ", "),
+                            paste0(deps_to_install[available], collapse = ", "),
                             package_name))
           
-          if (any(deps_to_install == FALSE))
+          if (any(available == FALSE))
             message(sprintf("debbie will also install source packages %s for %s from CRAN (not currently available as binaries)...", 
-                            paste0(names(deps_to_install[deps_to_install == FALSE]), collapse = ", "),
+                            paste0(deps_to_install[!available], collapse = ", "),
                             package_name))
           
           # try to install binary package versions first
           sorted_deps <- sort(deps_to_install, decreasing=TRUE)
                     
-          invisible(lapply(names(sorted_deps), 
+          invisible(lapply(c(deps_to_install[available], deps_to_install[!available]), 
                            function(x) {
                              install_deb(
                                package = x,
