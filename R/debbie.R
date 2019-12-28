@@ -52,11 +52,13 @@ unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 #' @param sources_url A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.
 #' @param release A character string describing the desired Debian release code name, default is \code{sid}.
 #' @param pkg_path A character string describing the intended destination directory of the package when downloaded. Default is the session temporary directory given by \code{tempdir()}.
-#' @param clean Logical. A Boolean flag indicating whether the non-package directories extracted from the archive should be deleted.
 #' @param opts A vector of character strings containing command line arguments for \code{INSTALL}, used when installing the downloaded package. Default is \code{--no-docs}, \code{--no-multiarch}, \code{--no-demo}.
 #' @param echo Logical. A Boolean flag passed to \code{callr::rcmd} which indicates whether the complete command should be echoed to the R console.
 #' @param show Logical. A Boolean flag passed to \code{callr::rcmd} which indicates whether the standard output of the \code{INSTALL} command run by \code{callr::rcmd} should be displayed while the process is running.
 #' @param fail_on_status Logical. A Boolean flag passed to \code{callr::rcmd} which controls whether an error should be thrown if the underlying process terminates with a status code other than 0. Default is \code{TRUE}.
+#' @param use_binary Logical. A Boolean flag specifying whether dependencies should be fetched using \code{install_deb}. Default is \code{TRUE}.
+#' @param recursive Logical. A Boolean flag specifying whether \code{install_deb} should recursively search for dependencies. Default is \code{TRUE}.
+#' @param upgrade Logical. A Boolean flag specifying whether to automatically upgrade packages using \code{install_deps}. Has no effect unless \code{recursive = FALSE}
 #' @param ... Arguments to be passed on to \code{remotes::install_deps}.
 #' @keywords Debian binary install packages 
 #' @export
@@ -66,11 +68,13 @@ install_deb <- function (package = NULL,
                          sources_url = "https://sources.debian.org/api/src",
                          release = "sid",
                          download_path = tempdir(), 
-                         clean = FALSE, 
                          opts = c("--no-docs", "--no-multiarch", "--no-demo"),
                          echo = FALSE,
                          show = TRUE,
                          fail_on_status = TRUE,
+                         use_binary = TRUE,
+                         recursive = TRUE,
+                         upgrade = "never",
                          ...) 
 {
   if (!is.null(package)) {
@@ -140,8 +144,39 @@ install_deb <- function (package = NULL,
   
   if (!dir.exists(package_path))
     stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
+
+  path_to_description <- file.path(actual_path, "DESCRIPTION")
+  raw_deps <- read.dcf(path_to_description, fields = c("Depends", "Imports"))
+  pruned_deps <- gsub(",* *R \\([^()]*\\),* *", "", raw_deps)
   
-  remotes::install_deps(pkgdir = package_path, build = FALSE, ...)
+  if (recursive == TRUE && use_binary == TRUE && !all(pruned_deps == "")) {
+    unformatted_deps <- pruned_deps[!pruned_deps == ""]
+    comma_separated_deps <- paste0(unformatted_deps, collapse = ", ")
+    list_of_deps <- strsplit(comma_separated_deps, ", ")
+    list_of_deps <- lapply(list_of_deps, function(x) gsub(" *\\([^()]*\\)", "", x)) # ignore version for now
+    deps_to_install <- lapply(list_of_deps, function(x) x[!x %in% installed.packages()[,"Package"]])
+    if (length(unlist(deps_to_install)) != 0) {
+      message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
+                      paste0(unlist(deps_to_install), collapse = ", "),
+                      package_name))
+      invisible(lapply(deps_to_install, 
+                       install_deb,
+                       package = pkg_name,
+                       mirror = mirror,
+                       sources_url = sources_url,
+                       release = release,
+                       download_path = download_path,
+                       opts = opts,
+                       echo = echo,
+                       show = show,
+                       fail_on_status = fail_on_status,
+                       use_binary = TRUE,
+                       recursive = FALSE))
+    } else if (use_binary == FALSE) {
+      remotes::install_deps(pkgdir = package_path, build = FALSE, upgrade = upgrade, ...)
+    }
+  }
+  
   invisible(callr::rcmd("INSTALL", c(package_path, opts), echo = echo, show = show, fail_on_status = fail_on_status))
   } else stop("no R package name was provided. Please supply the name of the R package to install as a character string.")
 }
