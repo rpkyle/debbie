@@ -59,6 +59,7 @@ unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 #' @param use_binary Logical. A Boolean flag specifying whether dependencies should be fetched using \code{install_deb}. Default is \code{TRUE}.
 #' @param recursive Logical. A Boolean flag specifying whether \code{install_deb} should recursively search for dependencies. Default is \code{TRUE}.
 #' @param upgrade Logical. A Boolean flag specifying whether to automatically upgrade packages using \code{install_deps}. Has no effect unless \code{recursive = FALSE}
+#' @param fallback Logical. A Boolean flag specifying whether to fall back to using CRAN (without installing dependencies) if no binary package is available. Default is \code{TRUE}.
 #' @param ... Arguments to be passed on to \code{remotes::install_deps}.
 #' @keywords Debian binary install packages 
 #' @export
@@ -75,113 +76,117 @@ install_deb <- function (package = NULL,
                          use_binary = TRUE,
                          recursive = TRUE,
                          upgrade = "never",
+                         fallback = TRUE,
                          ...) 
 {
   if (!is.null(package)) {
     if (httr::http_error(mirror))
       stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")
-  
-  # remove r-cran from package name if present
-  package <- gsub("r-cran-", "", package)
     
-  # remove trailing slash(es) from URLs if present
-  mirror <- gsub("/+$", "", mirror)
-  sources_url <- gsub("/+$", "", sources_url)
-  
-  result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
-  
-  if ("error" %in% names(result))
-    stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
-
-  # ensure that release is available
-  indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
-  if (!any(indexes == TRUE)) 
-    stop(sprintf("no matches found for release '%s' given package '%s'.", release, package))
-  
-  # retrieve newest package unless provided  
-  if (is.null(pkg_ver)) {
-    pkg_ver <- result$versions$version[indexes][[1]]
-  } else {
-    if (result$versions[indexes,]$version != pkg_ver)
-      stop(sprintf("no matches found for release '%s' and version '%s' of package '%s'.", release, pkg_ver, package))
-  }
-  
-  base_url <- sprintf("%s/r-cran-%s/", mirror, tolower(package))
-  filename <- sprintf("r-cran-%s_%s_amd64.deb", tolower(package), pkg_ver, ".deb")
-  url <- sprintf("%s%s", base_url, filename)
-  
-  if (!httr::http_error(url))
-    retrievePackage(url, download_path)
-  else {
-    url <- sprintf("%s%s", 
-                   base_url, 
-                   sprintf("r-cran-%s_%s_all.deb", tolower(package), pkg_ver, ".deb"))
-    if (!httr::http_error(url))
-      retrievePackage(url, download_path)
-    else {
-      reports <- utils::packageDescription("debbie")$BugReports
-      stop(sprintf("Error: the package '%s' could not be retrieved. The URL used was '%s'; if a valid Debian mirror was specified, please consider submitting a message with a bug report to %s",
-                   package, 
-                   url,
-                   reports))
+    # remove r-cran from package name if present
+    package <- gsub("r-cran-", "", package)
+    
+    # remove trailing slash(es) from URLs if present
+    mirror <- gsub("/+$", "", mirror)
+    sources_url <- gsub("/+$", "", sources_url)
+    
+    result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
+    
+    if ("error" %in% names(result) && fallback == FALSE) {
+      stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
+    } else if ("error" %in% names(result) && fallback == TRUE) {
+      remotes::install_cran(package, dependencies = FALSE, upgrade = upgrade)
+    } else {
+      # ensure that release is available
+      indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
+      if (!any(indexes == TRUE)) 
+        stop(sprintf("no matches found for release '%s' given package '%s'.", release, package))
+      
+      # retrieve newest package unless provided  
+      if (is.null(pkg_ver)) {
+        pkg_ver <- result$versions$version[indexes][[1]]
+      } else {
+        if (result$versions[indexes,]$version != pkg_ver)
+          stop(sprintf("no matches found for release '%s' and version '%s' of package '%s'.", release, pkg_ver, package))
+      }
+      
+      base_url <- sprintf("%s/r-cran-%s/", mirror, tolower(package))
+      filename <- sprintf("r-cran-%s_%s_amd64.deb", tolower(package), pkg_ver, ".deb")
+      url <- sprintf("%s%s", base_url, filename)
+      
+      if (!httr::http_error(url))
+        retrievePackage(url, download_path)
+      else {
+        url <- sprintf("%s%s", 
+                       base_url, 
+                       sprintf("r-cran-%s_%s_all.deb", tolower(package), pkg_ver, ".deb"))
+        if (!httr::http_error(url))
+          retrievePackage(url, download_path)
+        else {
+          reports <- utils::packageDescription("debbie")$BugReports
+          stop(sprintf("Error: the package '%s' could not be retrieved. The URL used was '%s'; if a valid Debian mirror was specified, please consider submitting a message with a bug report to %s",
+                       package, 
+                       url,
+                       reports))
+        }
+      }
+      
+      unpackPackage(download_path, 
+                    pkg_file=basename(url), 
+                    dest_path=download_path)
+      package_match <- gregexpr(pattern = "(?<=r-cran-)(.*?)(?=\\_)", 
+                                basename(url), 
+                                perl = TRUE)
+      package_name <- unlist(regmatches(basename(url), package_match))
+      
+      # try to protect ourselves from case sensitivity; some
+      # Debian packages store their assets in a subfolder whose
+      # case does not match the package name; this is a workaround
+      path_to_assets <- file.path(download_path, "usr/lib/R/site-library")
+      actual_path <- list.files(path_to_assets)[(tolower(package_name) == tolower(list.files(path_to_assets)))]
+      package_path <- file.path(path_to_assets, actual_path)
+      
+      if (!dir.exists(package_path))
+        stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
+      
+      path_to_description <- file.path(package_path, "DESCRIPTION")
+      raw_deps <- read.dcf(path_to_description, fields = c("Depends", "Imports"))
+      pruned_deps <- gsub(",* *R \\([^()]*\\),* *", "", raw_deps)
+      
+      if (recursive == TRUE && use_binary == TRUE && !all(pruned_deps == "")) {
+        unformatted_deps <- pruned_deps[!pruned_deps == ""]
+        comma_separated_deps <- paste0(unformatted_deps, collapse = ", ")
+        list_of_deps <- strsplit(comma_separated_deps, ", ")
+        list_of_deps <- lapply(list_of_deps, function(x) gsub(" *\\([^()]*\\)", "", x)) # ignore version for now
+        deps_to_install <- unlist(list_of_deps)
+        # limit to those packages not currently installed
+        deps_to_install <- deps_to_install[!deps_to_install %in% installed.packages()[,"Package"]]
+        if (length(deps_to_install) != 0) {
+          message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
+                          paste0(unlist(deps_to_install), collapse = ", "),
+                          package_name))
+          invisible(lapply(deps_to_install, 
+                           function(x) {
+                             install_deb(
+                               package = x,
+                               mirror = mirror,
+                               sources_url = sources_url,
+                               release = release,
+                               download_path = download_path,
+                               opts = opts,
+                               echo = echo,
+                               show = show,
+                               fail_on_status = fail_on_status,
+                               use_binary = TRUE,
+                               recursive = FALSE)
+                           }
+          ))
+        } else if (use_binary == FALSE) {
+          remotes::install_deps(pkgdir = package_path, build = FALSE, upgrade = upgrade, ...)
+        }
+      }
+      
+      invisible(callr::rcmd("INSTALL", c(package_path, opts), echo = echo, show = show, fail_on_status = fail_on_status))
     }
-  }
-
-  unpackPackage(download_path, 
-                pkg_file=basename(url), 
-                dest_path=download_path)
-  package_match <- gregexpr(pattern = "(?<=r-cran-)(.*?)(?=\\_)", 
-                            basename(url), 
-                            perl = TRUE)
-  package_name <- unlist(regmatches(basename(url), package_match))
-  
-  # try to protect ourselves from case sensitivity; some
-  # Debian packages store their assets in a subfolder whose
-  # case does not match the package name; this is a workaround
-  path_to_assets <- file.path(download_path, "usr/lib/R/site-library")
-  actual_path <- list.files(path_to_assets)[(tolower(package_name) == tolower(list.files(path_to_assets)))]
-  package_path <- file.path(path_to_assets, actual_path)
-  
-  if (!dir.exists(package_path))
-    stop(sprintf("the inferred package path is invalid; check to see whether the Debian package includes the subdirectory 'usr/lib/R/site-library/%s'.", actual_path))
-
-  path_to_description <- file.path(package_path, "DESCRIPTION")
-  raw_deps <- read.dcf(path_to_description, fields = c("Depends", "Imports"))
-  pruned_deps <- gsub(",* *R \\([^()]*\\),* *", "", raw_deps)
-  
-  if (recursive == TRUE && use_binary == TRUE && !all(pruned_deps == "")) {
-    unformatted_deps <- pruned_deps[!pruned_deps == ""]
-    comma_separated_deps <- paste0(unformatted_deps, collapse = ", ")
-    list_of_deps <- strsplit(comma_separated_deps, ", ")
-    list_of_deps <- lapply(list_of_deps, function(x) gsub(" *\\([^()]*\\)", "", x)) # ignore version for now
-    deps_to_install <- unlist(list_of_deps)
-    # limit to those packages not currently installed
-    deps_to_install <- deps_to_install[!deps_to_install %in% installed.packages()[,"Package"]]
-    if (length(deps_to_install) != 0) {
-      message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
-                      paste0(unlist(deps_to_install), collapse = ", "),
-                      package_name))
-      invisible(lapply(deps_to_install, 
-                       function(x) {
-                         install_deb(
-                           package = x,
-                           mirror = mirror,
-                           sources_url = sources_url,
-                           release = release,
-                           download_path = download_path,
-                           opts = opts,
-                           echo = echo,
-                           show = show,
-                           fail_on_status = fail_on_status,
-                           use_binary = TRUE,
-                           recursive = FALSE)
-                       }
-                       ))
-    } else if (use_binary == FALSE) {
-      remotes::install_deps(pkgdir = package_path, build = FALSE, upgrade = upgrade, ...)
-    }
-  }
-  
-  invisible(callr::rcmd("INSTALL", c(package_path, opts), echo = echo, show = show, fail_on_status = fail_on_status))
   } else stop("no R package name was provided. Please supply the name of the R package to install as a character string.")
 }
