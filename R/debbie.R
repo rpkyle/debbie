@@ -35,6 +35,36 @@ unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
   utils::untar(file.path(dest_path, "data.tar.xz"), exdir=dest_path)
 }
 
+#' Determine Whether an R Package Exists in Debian Sources Repository
+#'
+#' This function attempts to query the Debian sources repository API for
+#' an R package, provided as a string. The function returns a list with the
+#' API's response as well as a value of \code{TRUE} if found, and \code{FALSE}
+#' otherwise.
+#' 
+#' @param package A character string describing an R package, for which a search of the Debian package repository will be performed. 
+#' @param deb_mirror A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.
+#' @param sources_url A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.
+debPkgAvailable <- function(package, deb_mirror, sources_url) {
+  if (httr::http_error(deb_mirror))
+    stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")
+  
+  # remove r-cran from package name if present
+  package <- gsub("r-cran-", "", package)
+  
+  # remove trailing slash(es) from URLs if present
+  deb_mirror <- gsub("/+$", "", deb_mirror)
+  sources_url <- gsub("/+$", "", sources_url)
+  
+  result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
+  
+  if ("error" %in% names(result)) {
+    return(list(FALSE, result))
+  } else {
+    return(list(TRUE, result))
+  }
+}
+
 #' Install an R package from the Debian Package Repository 
 #'
 #' This function attempts to retrieve a Debian binary package corresponding
@@ -82,21 +112,14 @@ install_deb <- function (package = NULL,
                          ...) 
 {
   if (!is.null(package)) {
-    if (httr::http_error(deb_mirror))
-      stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")
+    pkg_data <- debPkgAvailable(package, deb_mirror, sources_url)
     
-    # remove r-cran from package name if present
-    package <- gsub("r-cran-", "", package)
+    pkg_status <- pkg_data[[1]]
+    result <- pkg_data[[2]]
     
-    # remove trailing slash(es) from URLs if present
-    deb_mirror <- gsub("/+$", "", deb_mirror)
-    sources_url <- gsub("/+$", "", sources_url)
-    
-    result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
-    
-    if ("error" %in% names(result) && fallback == FALSE) {
+    if (pkg_status == FALSE && fallback == FALSE) {
       stop(sprintf("the package '%s' was not found; the response returned was %s.", package, result$error))
-    } else if ("error" %in% names(result) && fallback == TRUE) {
+    } else if (pkg_status == FALSE && fallback == TRUE) {
       install.packages(package, repos = cran_mirror)
     } else {
       # ensure that release is available
@@ -167,7 +190,19 @@ install_deb <- function (package = NULL,
           message(sprintf("debbie is now attempting to install precompiled packages %s for %s from the Debian repository ...", 
                           paste0(unlist(deps_to_install), collapse = ", "),
                           package_name))
-          invisible(lapply(deps_to_install, 
+
+          deps_to_install <- vapply(deps_to_install, 
+                                function(x) 
+                                  debPkgAvailable(x, 
+                                                  deb_mirror, 
+                                                  sources_url),
+                                                  logical(1)
+                                )
+          
+          # try to install binary package versions first
+          sorted_deps <- sort(deps_to_install, decreasing=TRUE)
+                    
+          invisible(lapply(names(sorted_deps), 
                            function(x) {
                              install_deb(
                                package = x,
