@@ -4,7 +4,7 @@
 
 This package was originally a basic set of functions I found useful when deploying web applications with Dash for R. I've attempted to make it a bit more user-friendly in case anyone else finds it useful.
 
-**What does `debbie` do?**
+**How do I use `debbie`?**
 ===
 
 It's pretty simple: `debbie` includes a function called `install_deb` which will retrieve the Debian binary version of an R package given its name -- so to install `data.table` given the default mirror, the following should work:
