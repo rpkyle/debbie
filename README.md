@@ -92,9 +92,9 @@ The information returned when searching sources is relatively detailed (https://
 
 In the absence of a full-featured package searching API, `debbie` uses the information retrieved from the sources API to construct a URL to the R binary package `.deb` file manually. Given a package name and release "code name" (`sid`, for example), `install_deb` will parse the JSON result, build this URL, then download the package (the default is to use the R session temporary directory returned by `tempdir()`).
 
-Once downloaded, `unpackPackage` will then extract the R package subdirectory from the `.deb` file, which is packed using `ar`. If the archiver can be found, and contains a `data.tar.xz` file, `unpackPackage` will place its contents into the temporary directory using `utils::untar`.
+Once downloaded, `unpackPackage` will then extract the R package subdirectory from the `.deb` file, which is packed using `ar`. If the appropriate (un)archiver can be found, and the `.deb` file itself contains a `data.tar.xz` archive, `unpackPackage` will place its contents into the temporary directory using `ar` and `utils::untar`.
 
-`install_deb` then installs any required dependencies for the given package; currently this is done via `remotes::install_deps`, but will eventually invoke `install_deb` recursively, to avoiding compiling dependencies of a given package.
+`install_deb` then installs any required dependencies for the given package. The function attempts to be somewhat intelligent about this process, in that it will identify dependencies recursively using `miniCRAN::pkgDep`, and sort the results such that any packages available from Debian repos will be installed first -- and then the rest via CRAN.
 
 Finally, `callr::rcmd` is used to install the precompiled package.
 
