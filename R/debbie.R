@@ -46,22 +46,37 @@ unpackPackage <- function(pkg_path = tempdir(), pkg_file, dest_path = tempdir())
 #' @param deb_mirror A character string which represents a valid URL to a Debian package mirror's R package tree. Default is to use http://deb.debian.org/debian/pool/main/r.
 #' @param sources_url A character string which represents a valid URL to a Debian sources API. Default is https://sources.debian.org/api/src.
 debPkgAvailable <- function(package, deb_mirror, sources_url) {
-  if (httr::http_error(deb_mirror))
-    stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")
-  
   # remove r-cran from package name if present
   package <- gsub("r-cran-", "", package)
   
-  # remove trailing slash(es) from URLs if present
-  deb_mirror <- gsub("/+$", "", deb_mirror)
-  sources_url <- gsub("/+$", "", sources_url)
-  
-  result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
-  
-  if ("error" %in% names(result)) {
-    return(list(FALSE, result))
+  if (RcppAPT::suitable() == TRUE) {
+    
+    result <- getPackages(paste0("r-cran-", package, "$"))
+    
+    if (nrow(result) > 0) {
+      return(list(TRUE, result))
+    } else {
+      return(list(FALSE, result))
+    }
+    
   } else {
-    return(list(TRUE, result))
+    if (httr::http_error(deb_mirror))
+      stop("the specified Debian mirror URL does not exist or is unavailable. Please ensure that the URL describes the path to a valid Debian R package tree.")
+    
+    # remove r-cran from package name if present
+    package <- gsub("r-cran-", "", package)
+    
+    # remove trailing slash(es) from URLs if present
+    deb_mirror <- gsub("/+$", "", deb_mirror)
+    sources_url <- gsub("/+$", "", sources_url)
+    
+    result <- jsonlite::fromJSON(sprintf("%s/r-cran-%s/", sources_url, tolower(package)))
+    
+    if ("error" %in% names(result)) {
+      return(list(FALSE, result))
+    } else {
+      return(list(TRUE, result))
+    }
   }
 }
 
@@ -122,19 +137,34 @@ install_deb <- function (package = NULL,
     } else if (pkg_status == FALSE && fallback == TRUE) {
       install.packages(package, repos = cran_mirror)
     } else {
-      # ensure that release is available
-      indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
-      if (!any(indexes == TRUE)) 
-        stop(sprintf("no matches found for release '%s' given package '%s'.", release, package))
       
-      # retrieve newest package unless provided  
-      if (is.null(pkg_ver)) {
-        pkg_ver <- result$versions$version[indexes][[1]]
+      if (!RcppAPT::suitable()) {
+        # ensure that release is available
+        indexes <- vapply(result$versions$suites, function(x) any(release %in% x), logical(1))
+        if (!any(indexes == TRUE)) 
+          stop(sprintf("no matches found for release '%s' given package '%s'.", release, package))
+        
+        # retrieve newest package unless provided  
+        if (is.null(pkg_ver)) {
+          pkg_ver <- result$versions$version[indexes][[1]]
+          nomatches <- FALSE
+        } else {
+          if (result$versions[indexes,]$version != pkg_ver)
+            nomatches <- TRUE
+        }
       } else {
-        if (result$versions[indexes,]$version != pkg_ver)
-          stop(sprintf("no matches found for release '%s' and version '%s' of package '%s'.", release, pkg_ver, package))
-      }
-      
+        if (is.null(pkg_ver)) {
+          pkg_ver <- result$Version
+          nomatches <- FALSE
+        } else {
+          if (result$Version != pkg_ver)
+            nomatches <- TRUE
+        }
+      }   
+
+      if (nomatches == TRUE)
+        stop(sprintf("no matches found for release '%s' and version '%s' of package '%s'.", release, pkg_ver, package))
+            
       base_url <- sprintf("%s/r-cran-%s/", deb_mirror, tolower(package))
       filename <- sprintf("r-cran-%s_%s_amd64.deb", tolower(package), pkg_ver, ".deb")
       url <- sprintf("%s%s", base_url, filename)
