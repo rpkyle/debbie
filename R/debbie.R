@@ -51,7 +51,7 @@ debPkgAvailable <- function(package, deb_mirror, sources_url) {
   
   if (RcppAPT::suitable() == TRUE) {
     
-    result <- getPackages(paste0("r-cran-", package, "$"))
+    result <- RcppAPT::getPackages(paste0("r-cran-", package, "$"))
     
     if (nrow(result) > 0) {
       return(list(TRUE, result))
