@@ -1,4 +1,4 @@
-![debbie](https://user-images.githubusercontent.com/9809798/65625175-50cb4580-df99-11e9-9596-19db83305173.png)
+<img src="https://user-images.githubusercontent.com/9809798/73586748-b1a2e700-447f-11ea-9f2a-eae6f790033b.png" width="250">
 ===
 `debbie` is an R package which aims to simplify installation of binary versions of CRAN packages hosted in Debian repositories from within an R session. While CRAN mirrors do offer source versions of R packages, repeatedly compiling these can be time-consuming, or present challenges whenever compilation fails.
 
