@@ -96,7 +96,7 @@ In the absence of a full-featured package searching API, `debbie` uses the infor
 
 Once downloaded, `unpackPackage` will then extract the R package subdirectory from the `.deb` file, which is packed using `ar`. If the appropriate (un)archiver can be found, and the `.deb` file itself contains a `data.tar.xz` archive, `unpackPackage` will place its contents into the temporary directory using `ar` and `utils::untar`.
 
-Once all this is done, `callr::rcmd` is used to install the precompiled package, since R oddly has no option (as far as I can tell) to install a binary package on Unix/Linux hosts (currently it only allows Windows and Mac OS binaries to install via `install.packages`). It is somewhat crude, but `R CMD install` does work, and is what `debbie` uses to get the job done.
+Once all this is done, `callr::rcmd` is used to install the precompiled package, since R oddly has no option (as far as I can tell) to install a binary package on Unix/Linux hosts (currently it only allows Windows and Mac OS binaries to install via `install.packages`). It is somewhat crude, but `R CMD INSTALL` does work, and is what `debbie` uses to get the job done.
 
 Finally, `install_deb` installs any required dependencies for the given package. The function attempts to be somewhat intelligent about this process, in that it will identify dependencies recursively using `miniCRAN::pkgDep`, and sort the results such that any packages available from Debian repos will be installed first -- and then the rest via CRAN.
 
